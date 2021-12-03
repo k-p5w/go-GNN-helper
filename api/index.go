@@ -1,7 +1,10 @@
 package main
 
-import "fmt"
+import (
+	"fmt"
+	"net/http"
+)
 
-func main() {
-	fmt.Println("aaa")
+func Handler(w http.ResponseWriter, r *http.Request) {
+	fmt.Fprint(w, "<h1>aaa</h1>")
 }
