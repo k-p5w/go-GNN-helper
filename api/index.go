@@ -8,24 +8,49 @@ import (
 	"strings"
 )
 
+// gnnInfo is 芸人info
+type gnnInfo struct {
+	Name            string
+	ProductionColor string
+	ProductionName  string
+	StartYear       string
+	SNSAccount      []string
+}
+
 const (
+	ProductionKey      = "所属"
+	StartYEAR          = "結成"
 	ScrapboxAccountURL = "https://scrapbox.io/api/table/lololololol/%s/account.csv"
 	SiteTypeTwitter    = "twitter"
+	MSKcolor           = "#F39800"
+	WTNBcolor          = "#19a0c4"
+	SMGcolor           = "#7fb2e5"
+	TTNcolor           = "#f7b916"
+	YSMTcolor          = "#e94609"
+	HRPCcolor          = "#002e73"
+	OTPcolor           = "#ff4c00"
+	SMAcolor           = "#d9006c"
+	JRKcolor           = "#222021"
 )
 
+// Handler is /APIから呼ばれる
 func Handler(w http.ResponseWriter, r *http.Request) {
 
 	// getパラメータの解析
 	q := r.URL.Query()
 	actorName := q.Get("name")
-	getAccount(actorName)
-	productionColor := "red"
+
+	if len(actorName) == 0 {
+		return
+	}
+	gi := getTableAccount(actorName)
+
 	svgPage := fmt.Sprintf(`
 	<svg width="500" height="500" xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink">
-    <circle cx="250" cy="250" r="100" />
-    <text x="250" y="250" style="text-anchor:middle;font-size:30px;fill:%v">%v</text>
+    <circle  style="fill:%v" cx="250" cy="250" r="100" />
+    <text x="250" y="250" style="text-anchor:middle;font-size:30px;fill:black">%v</text>
 </svg>
-	`, productionColor, actorName)
+	`, gi.ProductionColor, gi.Name)
 
 	// Content-Type: image/svg+xml
 	// Vary: Accept-Encoding
@@ -35,9 +60,10 @@ func Handler(w http.ResponseWriter, r *http.Request) {
 	fmt.Fprint(w, svgPage)
 }
 
-func getAccount(t string) []string {
+// getTableAccount is テーブルから情報を取得する
+func getTableAccount(t string) gnnInfo {
 	ids := make([]string, 0)
-
+	var gi gnnInfo
 	u := fmt.Sprintf(ScrapboxAccountURL, t)
 	// URLにアクセスしデータを取得する
 	res, err := http.Get(u)
@@ -49,8 +75,8 @@ func getAccount(t string) []string {
 	records, err := reader.ReadAll()
 	if err != nil {
 		fmt.Printf("表形式データの取得に失敗しました。詳細（以下CSVファイルの中身が想定外です.)：\n %v \n\n", u)
-		// panic(err)
-		return nil
+		panic(err)
+		// return nil
 	}
 	for ii := 0; ii < len(records); ii++ {
 
@@ -64,31 +90,42 @@ func getAccount(t string) []string {
 			return ret
 		}
 
+		linkReplace := func(str string) string {
+			newstr := strings.Replace(str, "[", "", -1)
+			ret := strings.Replace(newstr, "]", "", -1)
+			return ret
+		}
+
 		// ID
-		itemID := records[ii][1]
-		itemID = regReplace(itemID)
+		tblValue := records[ii][1]
+		tblValue = regReplace(tblValue)
 		// [|]を除外して、Twitterになっていれば、IDを取得する
 		newType := strings.Replace(itemType, "[", "", -1)
-		idType := strings.Replace(newType, "]", "", -1)
+		tblKey := strings.Replace(newType, "]", "", -1)
 		twtId := ""
-		idLen := len(itemID)
-		// twitterが指定された場合
-		if idType == SiteTypeTwitter {
+		idLen := len(tblValue)
+		switch tblKey {
+		case SiteTypeTwitter:
 			//IDがURL全部なら、IDのみにする
-			urlPos := strings.LastIndex(itemID, "/")
+			urlPos := strings.LastIndex(tblValue, "/")
 			if urlPos > 0 {
 
-				twtId = itemID[urlPos+1 : idLen]
+				twtId = tblValue[urlPos+1 : idLen]
 				ids = append(ids, twtId)
 			} else {
-				twtId = itemID
+				twtId = tblValue
 				ids = append(ids, twtId)
 			}
 
-			//配列につめる
-		} else {
-			// Twitter以外の場合でも、IDのところがTwitterを示していれば取得する
-			fmt.Println(idType)
+		case ProductionKey:
+			// 事務所を取得する
+
+			if idLen > 0 {
+				gi.ProductionName = linkReplace(tblValue)
+			}
+		case StartYEAR:
+			// 結成年を取得する
+			gi.StartYear = linkReplace(tblValue)
 		}
 
 	}
@@ -102,5 +139,40 @@ func getAccount(t string) []string {
 		fmt.Printf("getAccount//%s:%v \n", t, len(ids))
 	}
 
-	return ids
+	gi.Name = t
+	gi.ProductionColor = getProductionColor(gi.ProductionName)
+	gi.SNSAccount = ids
+
+	fmt.Println(gi)
+	return gi
+}
+
+func getProductionColor(name string) string {
+
+	itemColor := ""
+	switch name {
+	case "ワタナベエンターテインメント":
+		itemColor = WTNBcolor
+	case "サンミュージック":
+		itemColor = SMGcolor
+	case "タイタン":
+		itemColor = TTNcolor
+	case "吉本興業":
+		itemColor = YSMTcolor
+	case "マセキ芸能社":
+		itemColor = MSKcolor
+	case "ホリプロコム":
+		itemColor = HRPCcolor
+	case "太田プロダクション":
+		itemColor = OTPcolor
+	case "SMA":
+		itemColor = SMAcolor
+	case "プロダクション人力舎":
+		itemColor = JRKcolor
+	default:
+		// 対応できていないとき
+		itemColor = "#808080"
+	}
+
+	return itemColor
 }
