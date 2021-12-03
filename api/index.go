@@ -38,11 +38,21 @@ func Handler(w http.ResponseWriter, r *http.Request) {
 
 	// getパラメータの解析
 	q := r.URL.Query()
-	actorName := q.Get("name")
+	svgname := q.Get("name")
 
-	if len(actorName) == 0 {
+	if len(svgname) == 0 {
 		return
 	}
+	actorName := ""
+	// SVGで終わっていること
+	if strings.HasSuffix(svgname, ".svg") {
+		actorName = strings.Replace(svgname, ".svg", "", -1)
+		// actorName = filepath.Base(svgname)
+		fmt.Printf("%v => %v", svgname, actorName)
+	} else {
+		return
+	}
+
 	gi := getTableAccount(actorName)
 
 	svgPage := fmt.Sprintf(`
