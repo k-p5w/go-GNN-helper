@@ -3,18 +3,30 @@ package table2svg
 import (
 	"encoding/csv"
 	"fmt"
+	"math"
 	"net/http"
 	"regexp"
+	"strconv"
 	"strings"
+	"unicode/utf8"
 )
 
 // gnnInfo is 芸人info
 type gnnInfo struct {
 	Name            string
-	ProductionColor string
+	ProductionColor ColorInfo
 	ProductionName  string
 	StartYear       string
 	SNSAccount      []string
+}
+
+type ColorInfo struct {
+	BaseColor          string
+	ComplementaryColor string
+	InvertColor        string
+}
+type RGB struct {
+	R, G, B float64
 }
 
 const (
@@ -31,6 +43,8 @@ const (
 	OTPcolor           = "#ff4c00"
 	SMAcolor           = "#d9006c"
 	JRKcolor           = "#222021"
+	SCGcolor           = "#d80c18"
+	GRPcolor           = "#7e3f98"
 )
 
 // Handler is /APIから呼ばれる
@@ -53,14 +67,23 @@ func Handler(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
+	// テーブルからデータの取り出し
 	gi := getTableAccount(actorName)
 
+	// フォントサイズの導出
+	nameLen := utf8.RuneCountInString(gi.Name)
+	canvasBase := 500
+	canvasText := canvasBase / 2
+	canvasFont := (canvasBase / nameLen) / 3
+	fmt.Printf("[%v]len=%v,size=%v \n", gi.Name, nameLen, canvasFont)
+
+	// canvasFont := canvasBase / (1 * 5)
 	svgPage := fmt.Sprintf(`
-	<svg width="500" height="500" xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink">
+	<svg width="%v" height="%v" xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink">
     <circle  style="fill:%v" cx="250" cy="250" r="100" />
-    <text x="250" y="250" style="text-anchor:middle;font-size:30px;fill:black">%v</text>
+    <text x="%v" y="%v" style="text-anchor:middle;font-size:%vpx;fill:%v;font-family: Meiryo,  Verdana, Helvetica, Arial, sans-serif;">%v</text>
 </svg>
-	`, gi.ProductionColor, gi.Name)
+	`, canvasBase, canvasBase, gi.ProductionColor.BaseColor, canvasText, canvasText, canvasFont, gi.ProductionColor.InvertColor, gi.Name)
 
 	// Content-Type: image/svg+xml
 	// Vary: Accept-Encoding
@@ -157,7 +180,7 @@ func getTableAccount(t string) gnnInfo {
 	return gi
 }
 
-func getProductionColor(name string) string {
+func getProductionColor(name string) ColorInfo {
 
 	itemColor := ""
 	switch name {
@@ -179,10 +202,61 @@ func getProductionColor(name string) string {
 		itemColor = SMAcolor
 	case "プロダクション人力舎":
 		itemColor = JRKcolor
+	case "松竹芸能":
+		itemColor = SCGcolor
+	case "グレープカンパニー":
+		itemColor = GRPcolor
 	default:
 		// 対応できていないとき
 		itemColor = "#808080"
 	}
 
-	return itemColor
+	ret := getColorPallet(itemColor)
+
+	return ret
+}
+
+// getColorPallet is 補色や反対色を取得するメソッド
+func getColorPallet(c string) ColorInfo {
+
+	var cp ColorInfo
+
+	// 16進数→10進数
+	rPt, _ := strconv.ParseUint(c[1:3], 16, 0)
+	gPt, _ := strconv.ParseUint(c[3:5], 16, 0)
+	bPt, _ := strconv.ParseUint(c[5:7], 16, 0)
+
+	// int->float
+	r := float64(rPt)
+	g := float64(gPt)
+	b := float64(bPt)
+
+	min := math.Min(r, math.Min(g, b)) //Min. value of RGB
+	max := math.Max(r, math.Max(g, b)) //Max. value of RGB
+	pt := max + min                    //Delta RGB value
+
+	newColorRGB := &RGB{pt - r, pt - g, pt - b}
+	newColorRGB2 := &RGB{255 - r, 255 - g, 255 - b}
+
+	fmt.Printf("RGB(%v,%v,%v) \n", r, g, b)
+
+	// fmt.Printf("NEW-RGB(%v,%v,%v) \n", newColorRGB.R, newColorRGB.G, newColorRGB.B)
+	fmt.Printf("NEW-RGB:%v \n", newColorRGB)
+
+	// // float->int
+	newR := int(newColorRGB.R)
+	newG := int(newColorRGB.G)
+	newB := int(newColorRGB.B)
+
+	newR2 := int(newColorRGB2.R)
+	newG2 := int(newColorRGB2.G)
+	newB2 := int(newColorRGB2.B)
+
+	fmt.Printf("RGB2(%v,%v,%v) \n", newR, newG, newB)
+	fmt.Printf("Invert RGB(%v,%v,%v) \n", newR2, newG2, newB2)
+
+	cp.BaseColor = c
+	cp.ComplementaryColor = fmt.Sprintf("RGB(%v,%v,%v)", newR, newG, newB)
+	cp.InvertColor = fmt.Sprintf("RGB(%v,%v,%v)", newR2, newG2, newB2)
+	return cp
 }
