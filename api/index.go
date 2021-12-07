@@ -90,9 +90,12 @@ func Handler(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
+	fmt.Println(actorName)
 	// テーブルからデータの取り出し
-	gi := getTableAccount(actorName)
-
+	// " "であれば"_"に置換する
+	urlName := strings.ReplaceAll(actorName, " ", "_")
+	gi := getTableAccount(urlName)
+	gi.Name = actorName
 	// フォントサイズの導出
 	nameLen := utf8.RuneCountInString(gi.Name)
 	frameWidth := FontSize * nameLen
