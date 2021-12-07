@@ -39,14 +39,14 @@ const layoutYYYY = "2006"
 
 // CANVAS向け定数
 const (
-	FrameXY        = 10
+	FrameXY        = 40
 	FrameRoundness = 20
 	FrameBase      = 200
 	FontSize       = 150
 	FrameTextXY    = 1300
 	FrameHeight    = FontSize + 100
-	TextBaseX      = 5
-	TextBaseY      = 180
+	TextBaseX      = 30
+	TextBaseY      = 220
 )
 
 const (
@@ -110,8 +110,8 @@ func Handler(w http.ResponseWriter, r *http.Request) {
 	// circle
 	TextShadowX := TextBaseX + 10
 	TextShadowY := TextBaseY + 5
-	canvasWidth := frameWidth + 50
-	canvasHeight := FrameHeight + 50
+	canvasWidth := frameWidth + 100
+	canvasHeight := FrameHeight + 80
 	svgPage := fmt.Sprintf(`
 	<svg width="%v" height="%v" xmlns="http://www.w3.org/2000/svg" 		xmlns:xlink="http://www.w3.org/1999/xlink"		>
 		<rect x="%v" y="%v" rx="%v" ry="%v" width="%v" 	height="%v" 			stroke="%v" 			fill="transparent" stroke-width="%v" 			/>
@@ -123,14 +123,14 @@ func Handler(w http.ResponseWriter, r *http.Request) {
     	</text>
 	</svg>
 	`, canvasWidth, canvasHeight,
-		FrameXY, FrameXY, FrameRoundness, FrameRoundness, frameWidth, FrameHeight,
+		FrameXY, FrameXY, gi.PerformanceExperience, gi.PerformanceExperience, frameWidth, FrameHeight,
 		gi.ProductionColor.BaseColor,
 		gi.PerformanceExperience*3,
 		TextShadowX, TextShadowY, FontSize,
 		gi.ProductionColor.InvertColor,
 		gi.Name,
 		TextBaseX, TextBaseY, FontSize, gi.Name)
-
+	fmt.Println(gi)
 	// Content-Type: image/svg+xml
 	// Vary: Accept-Encoding
 	w.Header().Set("Content-Type", "image/svg+xml; charset=utf-8")
@@ -143,6 +143,7 @@ func Handler(w http.ResponseWriter, r *http.Request) {
 func getTableAccount(t string) gnnInfo {
 	ids := make([]string, 0)
 	var gi gnnInfo
+	gi.PerformanceExperience = 1
 	u := fmt.Sprintf(ScrapboxAccountURL, t)
 	// URLにアクセスしデータを取得する
 	res, err := http.Get(u)
@@ -227,7 +228,7 @@ func getTableAccount(t string) gnnInfo {
 			debutYear := str2num(ret)
 
 			nowYear := day.Format(layoutYYYY)
-
+			fmt.Printf("%v-%v", nowYear, debutYear)
 			gi.PerformanceExperience = str2num(nowYear) - debutYear
 			gi.StartYear = performanceExperience
 			fmt.Println(gi.PerformanceExperience)
