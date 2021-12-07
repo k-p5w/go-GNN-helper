@@ -9,6 +9,8 @@ import (
 	"strconv"
 	"strings"
 	"unicode/utf8"
+
+	"golang.org/x/text/width"
 )
 
 // gnnInfo is 芸人info
@@ -28,6 +30,19 @@ type ColorInfo struct {
 type RGB struct {
 	R, G, B float64
 }
+
+// CANVAS向け定数
+const (
+	MainAreaSVG    = 2500
+	FrameXY        = 10
+	FrameRoundness = 20
+	FrameBase      = 200
+	FontSize       = 150
+	FrameTextXY    = 1300
+	FrameHeight    = FontSize + 100
+	TextBaseX      = 5
+	TextBaseY      = 180
+)
 
 const (
 	ProductionKey      = "所属"
@@ -72,18 +87,33 @@ func Handler(w http.ResponseWriter, r *http.Request) {
 
 	// フォントサイズの導出
 	nameLen := utf8.RuneCountInString(gi.Name)
-	canvasBase := 500
-	canvasText := canvasBase / 2
-	canvasFont := (canvasBase / nameLen) / 3
+	frameWidth := FontSize * nameLen
+	// canvasText := canvasBase / 2
+	canvasFont := (FontSize / nameLen) / 3
 	fmt.Printf("[%v]len=%v,size=%v \n", gi.Name, nameLen, canvasFont)
-
-	// canvasFont := canvasBase / (1 * 5)
+	// 芸歴
+	performanceExperience := 10
+	// circle
+	TextShadowX := TextBaseX + 10
+	TextShadowY := TextBaseY + 5
 	svgPage := fmt.Sprintf(`
-	<svg width="%v" height="%v" xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink">
-    <circle  style="fill:%v" cx="250" cy="250" r="100" />
-    <text x="%v" y="%v" style="text-anchor:middle;font-size:%vpx;fill:%v;font-family: Meiryo,  Verdana, Helvetica, Arial, sans-serif;">%v</text>
-</svg>
-	`, canvasBase, canvasBase, gi.ProductionColor.BaseColor, canvasText, canvasText, canvasFont, gi.ProductionColor.InvertColor, gi.Name)
+	<svg width="%v" height="%v" xmlns="http://www.w3.org/2000/svg" 		xmlns:xlink="http://www.w3.org/1999/xlink"		>
+		<rect x="%v" y="%v" rx="%v" ry="%v" width="%v" 	height="%v" 			stroke="%v" 			fill="transparent" stroke-width="%v" 			/>
+		<text x="%v" y="%v" style="text-anchor:start;font-size:%vpx;fill:%v;font-family: Meiryo,  Verdana, Helvetica, Arial, sans-serif;"			>			
+		%v
+		</text>
+		<text x="%v" y="%v" style="text-anchor:start;font-size:%vpx;fill:RGB(2,2,2);font-family: Meiryo,  Verdana, Helvetica, Arial, sans-serif;">
+        %v
+    	</text>
+	</svg>
+	`, MainAreaSVG, MainAreaSVG,
+		FrameXY, FrameXY, FrameRoundness, FrameRoundness, frameWidth, FrameHeight,
+		gi.ProductionColor.BaseColor,
+		performanceExperience,
+		TextShadowX, TextShadowY, FontSize,
+		gi.ProductionColor.InvertColor,
+		gi.Name,
+		TextBaseX, TextBaseY, FontSize, gi.Name)
 
 	// Content-Type: image/svg+xml
 	// Vary: Accept-Encoding
@@ -172,7 +202,7 @@ func getTableAccount(t string) gnnInfo {
 		fmt.Printf("getAccount//%s:%v \n", t, len(ids))
 	}
 
-	gi.Name = t
+	gi.Name = width.Widen.String(t)
 	gi.ProductionColor = getProductionColor(gi.ProductionName)
 	gi.SNSAccount = ids
 
