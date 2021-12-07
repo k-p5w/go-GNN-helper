@@ -77,6 +77,7 @@ func Handler(w http.ResponseWriter, r *http.Request) {
 	q := r.URL.Query()
 	svgname := q.Get("name")
 
+	fmt.Println(q)
 	if len(svgname) == 0 {
 		return
 	}
@@ -126,7 +127,7 @@ func Handler(w http.ResponseWriter, r *http.Request) {
 		TextShadowX, TextShadowY, FontSize,
 		gi.ProductionColor.InvertColor,
 		gi.Name,
-		TextBaseX, TextBaseY, FontSize, gi.Name)
+		TextBaseX, TextBaseY, FontSize, q)
 
 	// Content-Type: image/svg+xml
 	// Vary: Accept-Encoding
