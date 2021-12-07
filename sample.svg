@@ -1,4 +1,12 @@
-<svg width="500" height="500" xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink">
-    <circle cx="250" cy="250" r="100" />
-    <text x="250" y="250" style="text-anchor:middle;font-size:30px;fill:white">Hey, SVG</text>
+<svg width="2500" height="2500" xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink">
+
+    <rect x="10" y="10" rx="20" ry="20" width="1000" height="250" stroke="#e94609" fill="transparent" stroke-width="15" />
+        <text x="1300" y="1300"
+        style="text-anchor:middle;font-size:150px;fill:RGB(22,185,246);font-family: Meiryo,  Verdana, Helvetica, Arial, sans-serif;">
+        モグライダー
+    </text>
+            <text x="1250" y="1250"
+        style="text-anchor:middle;font-size:150px;fill:RGB(2,2,2);font-family: Meiryo,  Verdana, Helvetica, Arial, sans-serif;">
+        モグライダー
+    </text>
 </svg>

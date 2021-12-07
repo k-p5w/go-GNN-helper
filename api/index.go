@@ -76,6 +76,7 @@ func Handler(w http.ResponseWriter, r *http.Request) {
 	// getパラメータの解析
 	q := r.URL.Query()
 	svgname := q.Get("name")
+	// スペースだった場合は、"_"が設定されてくる
 
 	fmt.Println(q)
 	if len(svgname) == 0 {
@@ -95,9 +96,9 @@ func Handler(w http.ResponseWriter, r *http.Request) {
 	// テーブルからデータの取り出し
 	// " "であれば"_"に置換する
 	urlName := strings.ReplaceAll(actorName, " ", "_")
-	orgName := strings.ReplaceAll(actorName, "_", " ")
+
 	gi := getTableAccount(urlName)
-	gi.Name = orgName
+
 	// フォントサイズの導出
 	nameLen := utf8.RuneCountInString(gi.Name)
 	frameWidth := FontSize * nameLen
@@ -128,7 +129,7 @@ func Handler(w http.ResponseWriter, r *http.Request) {
 		TextShadowX, TextShadowY, FontSize,
 		gi.ProductionColor.InvertColor,
 		gi.Name,
-		TextBaseX, TextBaseY, FontSize, q)
+		TextBaseX, TextBaseY, FontSize, gi.Name)
 
 	// Content-Type: image/svg+xml
 	// Vary: Accept-Encoding
@@ -244,8 +245,8 @@ func getTableAccount(t string) gnnInfo {
 	} else {
 		fmt.Printf("getAccount//%s:%v \n", t, len(ids))
 	}
-
-	gi.Name = width.Widen.String(t)
+	orgName := strings.ReplaceAll(t, "_", " ")
+	gi.Name = width.Widen.String(orgName)
 	gi.ProductionColor = getProductionColor(gi.ProductionName)
 	gi.SNSAccount = ids
 
