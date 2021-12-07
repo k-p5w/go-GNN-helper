@@ -33,7 +33,6 @@ type RGB struct {
 
 // CANVAS向け定数
 const (
-	MainAreaSVG    = 2500
 	FrameXY        = 10
 	FrameRoundness = 20
 	FrameBase      = 200
@@ -96,6 +95,8 @@ func Handler(w http.ResponseWriter, r *http.Request) {
 	// circle
 	TextShadowX := TextBaseX + 10
 	TextShadowY := TextBaseY + 5
+	canvasWidth := frameWidth + 50
+	canvasHeight := FrameHeight + 50
 	svgPage := fmt.Sprintf(`
 	<svg width="%v" height="%v" xmlns="http://www.w3.org/2000/svg" 		xmlns:xlink="http://www.w3.org/1999/xlink"		>
 		<rect x="%v" y="%v" rx="%v" ry="%v" width="%v" 	height="%v" 			stroke="%v" 			fill="transparent" stroke-width="%v" 			/>
@@ -106,7 +107,7 @@ func Handler(w http.ResponseWriter, r *http.Request) {
         %v
     	</text>
 	</svg>
-	`, MainAreaSVG, MainAreaSVG,
+	`, canvasWidth, canvasHeight,
 		FrameXY, FrameXY, FrameRoundness, FrameRoundness, frameWidth, FrameHeight,
 		gi.ProductionColor.BaseColor,
 		performanceExperience,
