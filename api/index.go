@@ -8,6 +8,7 @@ import (
 	"regexp"
 	"strconv"
 	"strings"
+	"time"
 	"unicode/utf8"
 
 	"golang.org/x/text/width"
@@ -15,11 +16,12 @@ import (
 
 // gnnInfo is 芸人info
 type gnnInfo struct {
-	Name            string
-	ProductionColor ColorInfo
-	ProductionName  string
-	StartYear       string
-	SNSAccount      []string
+	Name                  string
+	ProductionColor       ColorInfo
+	ProductionName        string
+	StartYear             string
+	PerformanceExperience int
+	SNSAccount            []string
 }
 
 type ColorInfo struct {
@@ -30,6 +32,10 @@ type ColorInfo struct {
 type RGB struct {
 	R, G, B float64
 }
+
+// YMDstring is 年月日取り出し用の正規表現
+const YMDstring = `([0-9]+)年`
+const layoutYYYY = "2006"
 
 // CANVAS向け定数
 const (
@@ -46,6 +52,7 @@ const (
 const (
 	ProductionKey      = "所属"
 	StartYEAR          = "結成"
+	StartYEAR2         = "結成年"
 	ScrapboxAccountURL = "https://scrapbox.io/api/table/lololololol/%s/account.csv"
 	SiteTypeTwitter    = "twitter"
 	MSKcolor           = "#F39800"
@@ -56,9 +63,11 @@ const (
 	HRPCcolor          = "#002e73"
 	OTPcolor           = "#ff4c00"
 	SMAcolor           = "#d9006c"
-	JRKcolor           = "#222021"
+	JRKcolor           = "#eeeeee"
 	SCGcolor           = "#d80c18"
 	GRPcolor           = "#7e3f98"
+	NLEcolor           = "#231815"
+	ETCcolor           = "#505050"
 )
 
 // Handler is /APIから呼ばれる
@@ -91,7 +100,7 @@ func Handler(w http.ResponseWriter, r *http.Request) {
 	canvasFont := (FontSize / nameLen) / 3
 	fmt.Printf("[%v]len=%v,size=%v \n", gi.Name, nameLen, canvasFont)
 	// 芸歴
-	performanceExperience := 10
+
 	// circle
 	TextShadowX := TextBaseX + 10
 	TextShadowY := TextBaseY + 5
@@ -110,7 +119,7 @@ func Handler(w http.ResponseWriter, r *http.Request) {
 	`, canvasWidth, canvasHeight,
 		FrameXY, FrameXY, FrameRoundness, FrameRoundness, frameWidth, FrameHeight,
 		gi.ProductionColor.BaseColor,
-		performanceExperience,
+		gi.PerformanceExperience*3,
 		TextShadowX, TextShadowY, FontSize,
 		gi.ProductionColor.InvertColor,
 		gi.Name,
@@ -187,9 +196,37 @@ func getTableAccount(t string) gnnInfo {
 			if idLen > 0 {
 				gi.ProductionName = linkReplace(tblValue)
 			}
-		case StartYEAR:
+		case StartYEAR, StartYEAR2:
 			// 結成年を取得する
-			gi.StartYear = linkReplace(tblValue)
+			performanceExperience := linkReplace(tblValue)
+			fmt.Printf("%v=>%v \n", StartYEAR, gi.StartYear)
+			ret := ""
+			re := regexp.MustCompile(YMDstring)
+			val := re.FindStringSubmatch(performanceExperience)
+			// fmt.Printf("----- %v ----- \n", regval)
+			if len(val) > 1 {
+				// fmt.Println(val[1])
+				ret = val[1]
+
+			}
+
+			str2num := func(s string) int {
+				v, err := strconv.Atoi(s)
+				if err != nil {
+					v = 2020
+				}
+				return v
+			}
+			day := time.Now()
+			debutYear := str2num(ret)
+
+			nowYear := day.Format(layoutYYYY)
+
+			gi.PerformanceExperience = str2num(nowYear) - debutYear
+			gi.StartYear = performanceExperience
+			fmt.Println(gi.PerformanceExperience)
+		default:
+			fmt.Printf("%v,%v\n", tblKey, tblValue)
 		}
 
 	}
@@ -237,9 +274,12 @@ func getProductionColor(name string) ColorInfo {
 		itemColor = SCGcolor
 	case "グレープカンパニー":
 		itemColor = GRPcolor
+	case "ナチュラルエイト":
+		itemColor = NLEcolor
+
 	default:
 		// 対応できていないとき
-		itemColor = "#808080"
+		itemColor = ETCcolor
 	}
 
 	ret := getColorPallet(itemColor)
@@ -269,11 +309,6 @@ func getColorPallet(c string) ColorInfo {
 	newColorRGB := &RGB{pt - r, pt - g, pt - b}
 	newColorRGB2 := &RGB{255 - r, 255 - g, 255 - b}
 
-	fmt.Printf("RGB(%v,%v,%v) \n", r, g, b)
-
-	// fmt.Printf("NEW-RGB(%v,%v,%v) \n", newColorRGB.R, newColorRGB.G, newColorRGB.B)
-	fmt.Printf("NEW-RGB:%v \n", newColorRGB)
-
 	// // float->int
 	newR := int(newColorRGB.R)
 	newG := int(newColorRGB.G)
@@ -282,9 +317,6 @@ func getColorPallet(c string) ColorInfo {
 	newR2 := int(newColorRGB2.R)
 	newG2 := int(newColorRGB2.G)
 	newB2 := int(newColorRGB2.B)
-
-	fmt.Printf("RGB2(%v,%v,%v) \n", newR, newG, newB)
-	fmt.Printf("Invert RGB(%v,%v,%v) \n", newR2, newG2, newB2)
 
 	cp.BaseColor = c
 	cp.ComplementaryColor = fmt.Sprintf("RGB(%v,%v,%v)", newR, newG, newB)
