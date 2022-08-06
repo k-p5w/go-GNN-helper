@@ -53,6 +53,7 @@ const (
 	ProductionKey      = "所属"
 	StartYEAR          = "結成"
 	StartYEAR2         = "結成年"
+	StartYEAR3         = "活動開始"
 	ScrapboxAccountURL = "https://scrapbox.io/api/table/lololololol/%s/account.csv"
 	SiteTypeTwitter    = "twitter"
 	MSKcolor           = "#F39800"
@@ -67,7 +68,8 @@ const (
 	SCGcolor           = "#d80c18"
 	GRPcolor           = "#7e3f98"
 	NLEcolor           = "#231815"
-	ETCcolor           = "#505050"
+	ETCcolor           = "#cc44cc"
+	KDcolor            = "#444444"
 )
 
 // Handler is /APIから呼ばれる
@@ -198,12 +200,19 @@ func getTableAccount(t string) gnnInfo {
 			}
 
 		case ProductionKey:
+			//------------------------------
 			// 事務所を取得する
+			//------------------------------
 
 			if idLen > 0 {
 				gi.ProductionName = linkReplace(tblValue)
 			}
-		case StartYEAR, StartYEAR2:
+
+		case StartYEAR, StartYEAR2, StartYEAR3:
+			//------------------------------
+			// 芸歴を取得する
+			//------------------------------
+
 			// 結成年を取得する
 			performanceExperience := linkReplace(tblValue)
 			fmt.Printf("%v=>%v \n", StartYEAR, gi.StartYear)
@@ -283,7 +292,8 @@ func getProductionColor(name string) ColorInfo {
 		itemColor = GRPcolor
 	case "ナチュラルエイト":
 		itemColor = NLEcolor
-
+	case "ケイダッシュステージ":
+		itemColor = KDcolor
 	default:
 		// 対応できていないとき
 		itemColor = ETCcolor
