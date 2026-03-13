@@ -2,4 +2,12 @@ module github.com/k-p5w/go-table2svg
 
 go 1.17
 
-require golang.org/x/text v0.3.7 // indirect
+require golang.org/x/text v0.12.0
+
+require (
+	github.com/golang/protobuf v1.5.3 // indirect
+	golang.org/x/net v0.14.0 // indirect
+	golang.org/x/oauth2 v0.11.0 // indirect
+	google.golang.org/appengine v1.6.7 // indirect
+	google.golang.org/protobuf v1.31.0 // indirect
+)

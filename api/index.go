@@ -72,199 +72,150 @@ const (
 	KDcolor            = "#444444"
 )
 
-// Handler is /APIから呼ばれる
+// Handler はスタイリッシュ、UD、かつ月単位の芸歴に対応したSVGを生成します
 func Handler(w http.ResponseWriter, r *http.Request) {
+	fmt.Println("start Professional UD Handler")
 
-	// getパラメータの解析
 	q := r.URL.Query()
 	svgname := q.Get("name")
-	// スペースだった場合は、"_"が設定されてくる
-
-	fmt.Println(q)
-	if len(svgname) == 0 {
-		return
-	}
-	actorName := ""
-	// SVGで終わっていること
-	if strings.HasSuffix(svgname, ".svg") {
-		actorName = strings.Replace(svgname, ".svg", "", -1)
-		// actorName = filepath.Base(svgname)
-		fmt.Printf("%v => %v", svgname, actorName)
-	} else {
+	if len(svgname) == 0 || !strings.HasSuffix(svgname, ".svg") {
 		return
 	}
 
-	fmt.Println(actorName)
-	// テーブルからデータの取り出し
-	// " "であれば"_"に置換する
+	actorName := strings.Replace(svgname, ".svg", "", -1)
 	urlName := strings.ReplaceAll(actorName, " ", "_")
 
 	gi := getTableAccount(urlName)
 
-	// フォントサイズの導出
+	// 3. レイアウト計算
 	nameLen := utf8.RuneCountInString(gi.Name)
-	frameWidth := FontSize * nameLen
-	// canvasText := canvasBase / 2
-	canvasFont := (FontSize / nameLen) / 3
-	fmt.Printf("[%v]len=%v,size=%v \n", gi.Name, nameLen, canvasFont)
-	// 芸歴
+	currentFontSize := FontSize
+	if nameLen > 5 {
+		currentFontSize = (FontSize * 5) / nameLen
+	}
 
-	// circle
-	TextShadowX := TextBaseX + 10
-	TextShadowY := TextBaseY + 5
-	canvasWidth := frameWidth + 100
-	canvasHeight := FrameHeight + 80
-	svgPage := fmt.Sprintf(`
-	<svg width="%v" height="%v" xmlns="http://www.w3.org/2000/svg" 		xmlns:xlink="http://www.w3.org/1999/xlink"		>
-		<rect x="%v" y="%v" rx="%v" ry="%v" width="%v" 	height="%v" 			stroke="%v" 			fill="transparent" stroke-width="%v" 			/>
-		<text x="%v" y="%v" style="text-anchor:start;font-size:%vpx;fill:%v;font-family: Meiryo,  Verdana, Helvetica, Arial, sans-serif;"			>			
-		%v
-		</text>
-		<text x="%v" y="%v" style="text-anchor:start;font-size:%vpx;fill:RGB(2,2,2);font-family: Meiryo,  Verdana, Helvetica, Arial, sans-serif;">
-        %v
-    	</text>
-	</svg>
-	`, canvasWidth, canvasHeight,
-		FrameXY, FrameXY, gi.PerformanceExperience, gi.PerformanceExperience, frameWidth, FrameHeight,
-		gi.ProductionColor.BaseColor,
-		gi.PerformanceExperience*3,
-		TextShadowX, TextShadowY, FontSize,
-		gi.ProductionColor.InvertColor,
-		gi.Name,
-		TextBaseX, TextBaseY, FontSize, gi.Name)
-	fmt.Println(gi)
-	// Content-Type: image/svg+xml
-	// Vary: Accept-Encoding
+	// --- 4. 年輪（numLines）の計算 ---
+	// 芸歴（PerformanceExperienceに月を含めた数値が入っている想定）
+	exp := float64(gi.PerformanceExperience)
+	if exp < 1 {
+		exp = 1
+	}
+
+	// 1, 2, 4, 8, 16, 25, 32, 64... の差が出る対数スケール
+	numLines := int(math.Log2(exp)*2) + 1
+	if numLines > 20 {
+		numLines = 20
+	}
+
+	rectWidth := (currentFontSize * nameLen) + 120
+	rectHeight := FrameHeight
+	canvasWidth := rectWidth + (numLines * 16) + 80
+	canvasHeight := rectHeight + (numLines * 16) + 80
+
+	originX := float64(canvasWidth) / 2
+	originY := float64(canvasHeight) / 2
+	rectX := originX - float64(rectWidth)/2
+	rectY := originY - float64(rectHeight)/2
+
+	baseColor := gi.ProductionColor.BaseColor
+
+	// 6. 芸歴装飾レイヤー（年輪）の生成
+	var layers strings.Builder
+	for i := 0; i < numLines; i++ {
+		offset := float64(i * 8)
+		opacity := 0.35 - (float64(i) * 0.015)
+		if opacity < 0.05 {
+			opacity = 0.05
+		}
+		layers.WriteString(fmt.Sprintf(
+			`<rect x="%.1f" y="%.1f" rx="20" ry="20" width="%.1f" height="%.1f" 
+			fill="none" stroke="%s" stroke-width="1.2" stroke-opacity="%.2f" />
+			`,
+			rectX-offset, rectY-offset, float64(rectWidth)+(offset*2), float64(rectHeight)+(offset*2),
+			baseColor, opacity,
+		))
+	}
+
+	// 7. SVG組み立て
+	svgPage := fmt.Sprintf(`<?xml version="1.0" encoding="UTF-8"?>
+<svg width="%d" height="%d" viewBox="0 0 %d %d" xmlns="http://www.w3.org/2000/svg">
+	<defs>
+		<filter id="softShadow" x="-20%%" y="-20%%" width="140%%" height="140%%">
+			<feDropShadow dx="0" dy="2" stdDeviation="3" flood-opacity="0.3"/>
+		</filter>
+	</defs>
+	%s
+	<rect x="%.1f" y="%.1f" rx="20" ry="20" width="%d" height="%d" 
+		fill="none" stroke="%s" stroke-width="5" />
+	<g style="font-family:'Hiragino Kaku Gothic ProN','Meiryo',sans-serif; font-size:%dpx; font-weight:900; filter:url(#softShadow);">
+		<text x="50%%" y="50%%" text-anchor="middle" dominant-baseline="central" stroke="black" stroke-width="14" stroke-linejoin="round" paint-order="stroke" fill="black">%s</text>
+		<text x="50%%" y="50%%" text-anchor="middle" dominant-baseline="central" stroke="white" stroke-width="9" stroke-linejoin="round" paint-order="stroke" fill="white">%s</text>
+		<text x="50%%" y="50%%" text-anchor="middle" dominant-baseline="central" fill="%s">%s</text>
+	</g>
+</svg>`,
+		canvasWidth, canvasHeight, canvasWidth, canvasHeight,
+		layers.String(), rectX, rectY, rectWidth, rectHeight, baseColor,
+		currentFontSize, gi.Name, gi.Name, baseColor, gi.Name,
+	)
+
 	w.Header().Set("Content-Type", "image/svg+xml; charset=utf-8")
 	w.Header().Set("Vary", "Accept-Encoding")
-
 	fmt.Fprint(w, svgPage)
 }
 
-// getTableAccount is テーブルから情報を取得する
+// getTableAccount は年月とブラケットを考慮してデータを取得します
 func getTableAccount(t string) gnnInfo {
-	ids := make([]string, 0)
 	var gi gnnInfo
 	gi.PerformanceExperience = 1
 	u := fmt.Sprintf(ScrapboxAccountURL, t)
-	// URLにアクセスしデータを取得する
 	res, err := http.Get(u)
 	if err != nil {
 		panic(err)
 	}
+	defer res.Body.Close()
+
 	reader := csv.NewReader(res.Body)
-	reader.Comma = ','
-	records, err := reader.ReadAll()
-	if err != nil {
-		fmt.Printf("表形式データの取得に失敗しました。詳細（以下CSVファイルの中身が想定外です.)：\n %v \n\n", u)
-		panic(err)
-		// return nil
-	}
-	for ii := 0; ii < len(records); ii++ {
+	records, _ := reader.ReadAll()
 
-		// 種類
-		itemType := strings.ToLower(records[ii][0])
+	for _, record := range records {
+		tblKey := strings.Trim(strings.ToLower(record[0]), "[]\ufeff ")
+		tblValue := strings.Trim(record[1], "[]\ufeff ")
 
-		regReplace := func(str string) string {
-			rep := regexp.MustCompile(`\?.*`)
-			ret := rep.ReplaceAllString(str, "")
-
-			return ret
-		}
-
-		linkReplace := func(str string) string {
-			newstr := strings.Replace(str, "[", "", -1)
-			ret := strings.Replace(newstr, "]", "", -1)
-			return ret
-		}
-
-		// ID
-		tblValue := records[ii][1]
-		tblValue = regReplace(tblValue)
-		// [|]を除外して、Twitterになっていれば、IDを取得する
-		newType := strings.Replace(itemType, "[", "", -1)
-		tblKey := strings.Replace(newType, "]", "", -1)
-		twtId := ""
-		idLen := len(tblValue)
 		switch tblKey {
-		case SiteTypeTwitter:
-			//IDがURL全部なら、IDのみにする
-			urlPos := strings.LastIndex(tblValue, "/")
-			if urlPos > 0 {
-
-				twtId = tblValue[urlPos+1 : idLen]
-				ids = append(ids, twtId)
-			} else {
-				twtId = tblValue
-				ids = append(ids, twtId)
-			}
-
 		case ProductionKey:
-			//------------------------------
-			// 事務所を取得する
-			//------------------------------
-
-			if idLen > 0 {
-				gi.ProductionName = linkReplace(tblValue)
-			}
-
+			gi.ProductionName = tblValue
 		case StartYEAR, StartYEAR2, StartYEAR3:
-			//------------------------------
-			// 芸歴を取得する
-			//------------------------------
-
-			// 結成年を取得する
-			performanceExperience := linkReplace(tblValue)
-			fmt.Printf("%v=>%v \n", StartYEAR, gi.StartYear)
-			ret := ""
-			re := regexp.MustCompile(YMDstring)
-			val := re.FindStringSubmatch(performanceExperience)
-			// fmt.Printf("----- %v ----- \n", regval)
-			if len(val) > 1 {
-				// fmt.Println(val[1])
-				ret = val[1]
-
-			}
-
-			str2num := func(s string) int {
-				v, err := strconv.Atoi(s)
-				if err != nil {
-					v = 2020
+			// [1994年11月] のような形式から数字を抽出
+			re := regexp.MustCompile(`([0-9]+)年(?:([0-9]+)月)?`)
+			matches := re.FindStringSubmatch(tblValue)
+			if len(matches) > 1 {
+				debutYear, _ := strconv.Atoi(matches[1])
+				debutMonth := 1
+				if len(matches) > 2 && matches[2] != "" {
+					debutMonth, _ = strconv.Atoi(matches[2])
 				}
-				return v
+				now := time.Now()
+				// 月単位の精密な芸歴計算
+				totalMonths := (now.Year()-debutYear)*12 + int(now.Month()) - debutMonth
+				expFloat := float64(totalMonths) / 12.0
+				if expFloat < 1 {
+					expFloat = 1
+				}
+				// floatをintとして保持（Handler側でfloatとして計算に利用）
+				gi.PerformanceExperience = int(expFloat)
+				gi.StartYear = tblValue
 			}
-			day := time.Now()
-			debutYear := str2num(ret)
-
-			nowYear := day.Format(layoutYYYY)
-			fmt.Printf("%v-%v", nowYear, debutYear)
-			gi.PerformanceExperience = str2num(nowYear) - debutYear
-			gi.StartYear = performanceExperience
-			fmt.Println(gi.PerformanceExperience)
-		default:
-			fmt.Printf("%v,%v\n", tblKey, tblValue)
 		}
-
-	}
-
-	// 分解する
-	// もしIDがなかったらエラーにする
-	if len(ids) == 0 {
-		fmt.Println("検索対象のアカウントIDの取得に失敗しました")
-		// panic(err)
-	} else {
-		fmt.Printf("getAccount//%s:%v \n", t, len(ids))
 	}
 	orgName := strings.ReplaceAll(t, "_", " ")
 	gi.Name = width.Widen.String(orgName)
 	gi.ProductionColor = getProductionColor(gi.ProductionName)
-	gi.SNSAccount = ids
-
-	fmt.Println(gi)
 	return gi
 }
 
 func getProductionColor(name string) ColorInfo {
+
+	fmt.Printf("getProductionColor//%v \n", name)
 
 	itemColor := ""
 	switch name {
