@@ -7,195 +7,154 @@
         :root {
             --line-color: #888;
             --line-width: 2px;
-            --card-height: 40px; /* 8試合並ぶので、さらにスリムに */
-            --card-width: 150px;
-            --gap-y: 10px;
-            --connector-w: 20px;
+            --card-h: 40px;
+            --card-w: 140px;
+            --gap-y: 8px;
+            --conn-w: 30px;
+            --total-h: 800px;
         }
         body { 
             background-color: #f8f9fa; 
-            display: flex; 
-            flex-direction: column;
-            align-items: center; 
-            padding: 20px 0;
-            margin: 0; 
             font-family: sans-serif; 
+            display: flex; 
+            flex-direction: column; 
+            align-items: center; 
+            padding: 20px; 
+            margin: 0; 
         }
         h1 { font-size: 1.5rem; color: #333; margin-bottom: 20px; }
 
-        /* 全体のレイアウト */
-        .tournament-container {
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            gap: 0;
+        .tournament-container { 
+            display: flex; 
+            align-items: center; 
+            justify-content: center; 
+            height: var(--total-h); 
         }
 
-        /* 共通のラウンド設定 */
-        .round {
-            display: flex;
-            flex-direction: column;
-            justify-content: space-around;
-            height: 100%;
+        .round { 
+            display: flex; 
+            flex-direction: column; 
+            justify-content: space-around; 
+            height: 100%; 
         }
-
-        /* 試合ユニットの基本（左側用：左から右へ） */
-        .matchup-unit {
-            display: flex;
-            align-items: center;
-            margin: 10px 0;
-        }
-
-        .teams {
-            display: flex;
-            flex-direction: column;
-            gap: var(--gap-y);
-        }
+        .r1-col { width: var(--card-w); }
+        .line-col { width: var(--conn-w); }
 
         .participant { 
-            width: var(--card-width); 
-            height: var(--card-height); 
+            width: var(--card-w); 
+            height: var(--card-h); 
             background: white; 
             border: 1px solid #ccc; 
             border-radius: 4px; 
             display: flex; 
             align-items: center; 
             justify-content: center; 
-            overflow: hidden; 
             box-shadow: 0 1px 3px rgba(0,0,0,0.1); 
+            box-sizing: border-box;
+            overflow: hidden;
         }
-        .participant img { max-width: 90%; max-height: 90%; }
+        .participant img { max-width: 90%; max-height: 90%; display: block; }
 
-        /* --- 左翼（Left Wing）の線 --- */
-        .left-wing .connector { 
-            width: var(--connector-w); 
-            height: calc(var(--card-height) + var(--gap-y)); 
-            border: var(--line-width) solid var(--line-color); 
-            border-left: none; /* 右側を開ける */
-            border-radius: 0 8px 8px 0; 
+        /* 線パーツ */
+        .bracket-unit {
             position: relative; 
-        }
-        .left-wing .connector::after { 
-            content: ""; 
-            position: absolute; 
-            top: 50%; 
-            right: calc(var(--connector-w) * -1); 
-            width: var(--connector-w); 
-            height: var(--line-width); 
-            background: var(--line-color); 
-            transform: translateY(-50%); 
-        }
-
-        /* --- 右翼（Right Wing）の線 --- */
-        .right-wing .matchup-unit {
-            flex-direction: row-reverse; /* 要素を右から左へ並べる */
-        }
-        .right-wing .connector { 
-            width: var(--connector-w); 
-            height: calc(var(--card-height) + var(--gap-y)); 
-            border: var(--line-width) solid var(--line-color); 
-            border-right: none; /* 左側を開ける */
-            border-radius: 8px 0 0 8px; 
-            position: relative; 
-        }
-        .right-wing .connector::after { 
-            content: ""; 
-            position: absolute; 
-            top: 50%; 
-            left: calc(var(--connector-w) * -1); /* 左へ伸ばす */
-            width: var(--connector-w); 
-            height: var(--line-width); 
-            background: var(--line-color); 
-            transform: translateY(-50%); 
-        }
-
-        /* 中央（決勝）のスタイリング */
-        .center-wing {
-            display: flex;
-            flex-direction: column;
+            width: 100%; 
+            display: flex; 
             align-items: center;
-            margin: 0 calc(var(--connector-w) * 2); /* 左右の線との距離 */
         }
-        .final-match {
-            margin-top: 50px; /* 位置調整 */
+        .bracket {
+            position: absolute; 
+            width: 100%; 
+            height: 50%;
+            border: var(--line-width) solid var(--line-color);
+            box-sizing: border-box;
         }
-        .winner-card {
-            border: 2px dashed #aaa;
-            background: #eee;
-            color: #666;
-            font-weight: bold;
-            margin-top: var(--gap-y);
+        .h-line {
+            position: absolute; 
+            width: 100%; 
+            height: var(--line-width);
+            background: var(--line-color); 
+            top: 50%; 
+            transform: translateY(-50%);
         }
+
+        /* 左右の向き */
+        .left-wing .bracket { border-left: none; border-radius: 0 8px 8px 0; left: 0; }
+        .left-wing .h-line { left: 100%; width: var(--conn-w); }
+
+        .right-wing .bracket { border-right: none; border-radius: 8px 0 0 8px; right: 0; }
+        .right-wing .h-line { right: 100%; width: var(--conn-w); }
+
+        /* 中央エリア：ベスト8の枠 */
+        .center-wing { 
+            display: flex; 
+            flex-direction: column; 
+            align-items: center; 
+            margin: 0 10px; 
+            height: 100%;
+            justify-content: space-around;
+        }
+        .center-gap { height: 100px; } /* 上下4枠ずつの間隔 */
 
     </style>
 </head>
 <body>
 
-<h1>THE SECOND 決勝トーナメント</h1>
+<h1>THE SECOND ～漫才トーナメント～</h1>
 
 <div class="tournament-container">
-    
-    <div class="round left-wing" id="left-bracket">
-        </div>
+    <div class="round r1-col" id="L-R1"></div>
+    <div class="round line-col left-wing" id="L-L2"></div>
+    <div class="round line-col left-wing" id="L-L3"></div>
 
     <div class="center-wing">
-        <div class="participant winner-card">WINNER</div>
-        <div class="teams final-match">
-            <div class="participant" style="background:#eee; border:1px dashed #bbb;"></div>
-            <div class="participant" style="background:#eee; border:1px dashed #bbb;"></div>
-        </div>
+        <div class="participant" style="border: 2px solid #ffd700; background: #fffdf0; color: #b8860b; font-weight: bold; margin-bottom: 20px;">グランプリファイナル</div>
+        
+
     </div>
 
-    <div class="round right-wing" id="right-bracket">
-        </div>
-
+    <div class="round line-col right-wing" id="R-L3"></div>
+    <div class="round line-col right-wing" id="R-L2"></div>
+    <div class="round r1-col" id="R-R1"></div>
 </div>
 
 <script>
-    // データを左右に分割
-    const matchupsLeft = [
-        ["スーパーマラドーナ", "金属バット"],
-        ["LLR", "ラフ次元"],
-        ["タモンズ", "モンスターエンジン"],
-        ["レイザーラモン", "ななまがり"],
-        ["エル・カブキ", "はりけ～んず"],
-        ["ツーナッカン", "ザ・パンチ"],
-        ["スマイル", "セルライトスパ"],
-        ["黒帯", "カナメストーン"]
-    ];
+    const leftTeams = ["スーパーマラドーナ", "金属バット", "LLR", "ラフ次元", "タモンズ", "モンスターエンジン", "レイザーラモン", "ななまがり", "エル・カブキ", "はりけ～んず", "ツーナッカン", "ザ・パンチ", "スマイル", "セルライトスパ", "黒帯", "カナメストーン"];
+    const rightTeams = ["パタパタママ", "シュッシュレコード", "ちょんまげラーメン", "シャンプーハット", "Dr.ハインリッヒ", "吉田たち", "ヤング", "タナからイケダ", "三拍子", "マシンガンズ", "高校ズ", "リニア", "ハンジロウ", "囲碁将棋", "ブルーリバー", "トット"];
 
-    const matchupsRight = [
-        ["パタパタママ", "シュッシュレコード"],
-        ["ちょんまげラーメン", "シャンプーハット"],
-        ["Dr.ハイリンリッヒ", "吉田たち"],
-        ["ヤング", "タナからイケダ"],
-        ["三拍子", "マシンガンズ"],
-        ["高校ズ", "リニア"],
-        ["ハンジロウ", "囲碁将棋"],
-        ["ブルーリバー", "トット"]
-    ];
-
-    // 共通の生成関数
-    function createBracket(containerId, matchups) {
-        const container = document.getElementById(containerId);
-        matchups.forEach(pair => {
-            const unit = document.createElement('div');
-            unit.className = 'matchup-unit';
-            unit.innerHTML = `
-                <div class="teams">
-                    <div class="participant"><img src="https://go-table2svg.vercel.app/api?name=${encodeURIComponent(pair[0])}.svg"></div>
-                    <div class="participant"><img src="https://go-table2svg.vercel.app/api?name=${encodeURIComponent(pair[1])}.svg"></div>
-                </div>
-                <div class="connector"></div>
-            `;
-            container.appendChild(unit);
+    function buildR1(id, teams) {
+        const col = document.getElementById(id);
+        teams.forEach(name => {
+            const p = document.createElement('div');
+            p.className = 'participant';
+            p.innerHTML = `<img src="https://go-table2svg.vercel.app/api?name=${encodeURIComponent(name)}.svg">`;
+            col.appendChild(p);
         });
     }
 
-    // 左右それぞれに流し込み
-    createBracket('left-bracket', matchupsLeft);
-    createBracket('right-bracket', matchupsRight);
-</script>
+    function buildLines(id, count) {
+        const col = document.getElementById(id);
+        for(let i=0; i<count; i++) {
+            const unit = document.createElement('div');
+            unit.className = 'bracket-unit';
+            unit.style.height = (800 / count) + "px";
+            unit.innerHTML = `
+                <div class="bracket" style="${i % 2 === 0 ? 'border-bottom:none; top:25%;' : 'border-top:none; bottom:25%;'}">
+                    <div class="h-line"></div>
+                </div>`;
+            col.appendChild(unit);
+        }
+    }
 
+    // 左側構築
+    buildR1('L-R1', leftTeams);
+    buildLines('L-L2', 8);
+    buildLines('L-L3', 4);
+
+    // 右側構築
+    buildR1('R-R1', rightTeams);
+    buildLines('R-L2', 8);
+    buildLines('R-L3', 4);
+</script>
 </body>
 </html>

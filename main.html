@@ -1,0 +1,372 @@
+<!DOCTYPE html>
+<html lang="ja">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>GNN Card Forge</title>
+    <style>
+        body {
+            font-family: 'Helvetica Neue', Arial, 'Hiragino Kaku Gothic ProN', 'Meiryo', sans-serif;
+            background: #1a1a1a;
+            color: #eee;
+            padding: 20px;
+            line-height: 1.6;
+        }
+
+        .container {
+            max-width: 900px;
+            margin: 0 auto;
+            padding-bottom: 60px;
+        }
+
+        h2 {
+            border-left: 5px solid #f39800;
+            padding-left: 15px;
+            margin-bottom: 5px;
+            color: #f39800;
+        }
+
+        .subtitle {
+            font-size: 0.8em;
+            color: #666;
+            margin-bottom: 30px;
+            margin-left: 20px;
+        }
+
+        .controls {
+            background: #2a2a2a;
+            padding: 25px;
+            border-radius: 12px;
+            margin-bottom: 25px;
+            box-shadow: 0 4px 15px rgba(0, 0, 0, 0.5);
+        }
+
+        .input-group {
+            display: flex;
+            gap: 10px;
+            margin-bottom: 15px;
+        }
+
+        input {
+            flex: 1;
+            padding: 12px;
+            border-radius: 6px;
+            border: 1px solid #444;
+            background: #111;
+            color: #fff;
+            font-size: 16px;
+            outline: none;
+        }
+
+        input:focus {
+            border-color: #f39800;
+        }
+
+        button {
+            padding: 10px 20px;
+            cursor: pointer;
+            background: #f39800;
+            border: none;
+            border-radius: 6px;
+            font-weight: bold;
+            color: #000;
+            transition: 0.2s;
+        }
+
+        button:hover {
+            background: #ffae00;
+            transform: translateY(-1px);
+        }
+
+        button:active {
+            transform: translateY(1px);
+        }
+
+        .copy-btn {
+            background: #444;
+            color: #fff;
+            font-size: 14px;
+            margin-left: 10px;
+        }
+
+        .copy-btn:hover {
+            background: #666;
+        }
+
+        .preview-area {
+            background: #333;
+            min-height: 380px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            border: 2px solid #444;
+            border-radius: 12px;
+            position: relative;
+            overflow: hidden;
+            margin-bottom: 15px;
+        }
+
+        .preview-area img {
+            max-width: 90%;
+            height: auto;
+            filter: drop-shadow(0 10px 25px rgba(0, 0, 0, 0.6));
+        }
+
+        .url-box {
+            background: #111;
+            padding: 15px;
+            border-radius: 6px;
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            border: 1px solid #333;
+        }
+
+        #urlDisplay {
+            font-family: 'Consolas', monospace;
+            font-size: 13px;
+            color: #aaa;
+            white-space: nowrap;
+            overflow: hidden;
+            text-overflow: ellipsis;
+            flex: 1;
+        }
+
+        .label {
+            font-size: 12px;
+            color: #888;
+            margin-bottom: 8px;
+            font-weight: bold;
+            text-transform: uppercase;
+        }
+
+        .samples {
+            display: flex;
+            gap: 8px;
+            flex-wrap: wrap;
+            margin-bottom: 15px;
+        }
+
+        .sample-btn {
+            background: #3d3d3d;
+            color: #ccc;
+            font-size: 11px;
+            padding: 6px 12px;
+            font-weight: normal;
+            border-radius: 4px;
+        }
+
+        .sample-btn:hover {
+            background: #555;
+            color: #fff;
+        }
+
+        .history-btn {
+            background: #2a4a3a;
+            color: #cfc;
+            border: 1px solid #3a5a4a;
+        }
+
+        /* フッター設定 */
+        footer {
+            margin-top: 50px;
+            padding-top: 20px;
+            border-top: 1px solid #333;
+            text-align: center;
+            font-size: 13px;
+            color: #666;
+        }
+
+        footer a {
+            color: #f39800;
+            text-decoration: none;
+            margin: 0 10px;
+            border-bottom: 1px solid transparent;
+            transition: 0.2s;
+        }
+
+        footer a:hover {
+            border-bottom: 1px solid #f39800;
+        }
+
+        /* コピー通知トースト */
+        #toast {
+            visibility: hidden;
+            min-width: 250px;
+            background-color: #f39800;
+            color: #000;
+            text-align: center;
+            border-radius: 4px;
+            padding: 12px;
+            position: fixed;
+            z-index: 100;
+            left: 50%;
+            bottom: 40px;
+            transform: translateX(-50%);
+            font-weight: bold;
+        }
+
+        #toast.show {
+            visibility: visible;
+            animation: fadein 0.5s, fadeout 0.5s 2.5s;
+        }
+
+        @keyframes fadein {
+            from {
+                bottom: 0;
+                opacity: 0;
+            }
+
+            to {
+                bottom: 40px;
+                opacity: 1;
+            }
+        }
+
+        @keyframes fadeout {
+            from {
+                bottom: 40px;
+                opacity: 1;
+            }
+
+            to {
+                bottom: 0;
+                opacity: 0;
+            }
+        }
+
+        /* モバイル対応 */
+        @media (max-width: 600px) {
+
+            .input-group,
+            .url-box {
+                flex-direction: column;
+            }
+
+            .copy-btn {
+                margin-left: 0;
+                margin-top: 10px;
+                width: 100%;
+            }
+
+            .preview-area {
+                min-height: 250px;
+            }
+        }
+    </style>
+</head>
+
+<body>
+    <div class="container">
+        <h2>GNN Card Forge</h2>
+        <div class="subtitle">Triple-Layer Visualizer // 芸人の名前をカードで表示するだけのツール</div>
+
+        <div class="controls">
+            <div class="label">コンビor芸人名</div>
+            <div class="input-group">
+                <input type="text" id="actorName" placeholder="芸人名を入力..." value="マシンガンズ"
+                    onkeypress="if(event.key==='Enter')updatePreview()">
+                <button onclick="updatePreview()">FORGE</button>
+            </div>
+
+            <div class="label">Presets</div>
+            <div class="samples">
+                <button class="sample-btn" onclick="load('マシンガンズ')">太田：マシンガンズ</button>
+                <button class="sample-btn" onclick="load('タイムマシーン３号')">太田：タイマ</button>
+                <button class="sample-btn" onclick="load('囲碁将棋')">吉本：囲碁将棋</button>
+                <button class="sample-btn" onclick="load('三拍子')">サン：三拍子</button>
+                <button class="sample-btn" onclick="load('ハンジロウ')">マセキ：ハンジロウ</button>
+            </div>
+
+            <div id="historySection" style="display:none;">
+                <div class="label">Recent History</div>
+                <div class="samples" id="historyArea"></div>
+            </div>
+        </div>
+
+        <div class="preview-area" id="previewArea">
+            <p style="color:#666;">Waiting for Forge...</p>
+        </div>
+
+        <div class="label">Generated SVG Endpoint</div>
+        <div class="url-box">
+            <span id="urlDisplay">URL...</span>
+            <button class="copy-btn" onclick="copyUrl()">Copy URL</button>
+        </div>
+
+        <footer>
+            <div class="label" style="margin-bottom: 12px;">Contact & Information</div>
+            <p>画像が表示されない・データが古い等の報告はこちら：<br>
+                <a href="https://scrapbox.io/lololololol/" target="_blank">About & Wiki (Cosense)</a> /
+                <a href="https://discord.gg/6wzPRYWx9f" target="_blank">Support & Community (Discord)</a>
+            </p>
+            <div style="margin-top: 15px; font-size: 11px; opacity: 0.5; letter-spacing: 1px;">
+                &copy; 2026 GNN Card Forge<br>
+                DESIGN IN ME / MADE IN AI
+            </div>
+        </footer>
+    </div>
+
+    <div id="toast">Copied to Clipboard!</div>
+
+    <script>
+        const API_BASE = "https://go-table2svg.vercel.app/api?name=";
+        const MAX_HISTORY = 12;
+
+        function updatePreview() {
+            const name = document.getElementById('actorName').value.trim();
+            if (!name) return;
+
+            const url = `${API_BASE}${encodeURIComponent(name)}.svg`;
+            const previewArea = document.getElementById('previewArea');
+            const urlDisplay = document.getElementById('urlDisplay');
+
+            previewArea.innerHTML = `<img src="${url}" alt="${name}" onerror="handleError()">`;
+            urlDisplay.innerText = url;
+            saveHistory(name);
+        }
+
+        function load(name) {
+            document.getElementById('actorName').value = name;
+            updatePreview();
+        }
+
+        function saveHistory(name) {
+            let history = JSON.parse(localStorage.getItem('gnn_forge_history') || '[]');
+            history = [name, ...history.filter(n => n !== name)].slice(0, MAX_HISTORY);
+            localStorage.setItem('gnn_forge_history', JSON.stringify(history));
+            renderHistory();
+        }
+
+        function renderHistory() {
+            const history = JSON.parse(localStorage.getItem('gnn_forge_history') || '[]');
+            const area = document.getElementById('historyArea');
+            const section = document.getElementById('historySection');
+            if (history.length === 0) { section.style.display = 'none'; return; }
+            section.style.display = 'block';
+            area.innerHTML = history.map(name => `<button class="sample-btn history-btn" onclick="load('${name}')">${name}</button>`).join('');
+        }
+
+        function copyUrl() {
+            const url = document.getElementById('urlDisplay').innerText;
+            if (url.startsWith('http')) {
+                navigator.clipboard.writeText(url).then(() => { showToast(); });
+            }
+        }
+
+        function showToast() {
+            const toast = document.getElementById("toast");
+            toast.className = "show";
+            setTimeout(() => { toast.className = toast.className.replace("show", ""); }, 3000);
+        }
+
+        function handleError() {
+            document.getElementById('previewArea').innerHTML = `<p style="color: #ff4c4c;">Forge Failed: SVGを取得できませんでした。<br>Scrapbox側の記述を確認してください。</p>`;
+        }
+
+        window.onload = () => { renderHistory(); updatePreview(); };
+    </script>
+</body>
+
+</html>
