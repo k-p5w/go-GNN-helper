@@ -1,0 +1,201 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+    <meta charset="UTF-8">
+    <title>The Second Symmetric Tournament</title>
+    <style>
+        :root {
+            --line-color: #888;
+            --line-width: 2px;
+            --card-height: 40px; /* 8試合並ぶので、さらにスリムに */
+            --card-width: 150px;
+            --gap-y: 10px;
+            --connector-w: 20px;
+        }
+        body { 
+            background-color: #f8f9fa; 
+            display: flex; 
+            flex-direction: column;
+            align-items: center; 
+            padding: 20px 0;
+            margin: 0; 
+            font-family: sans-serif; 
+        }
+        h1 { font-size: 1.5rem; color: #333; margin-bottom: 20px; }
+
+        /* 全体のレイアウト */
+        .tournament-container {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 0;
+        }
+
+        /* 共通のラウンド設定 */
+        .round {
+            display: flex;
+            flex-direction: column;
+            justify-content: space-around;
+            height: 100%;
+        }
+
+        /* 試合ユニットの基本（左側用：左から右へ） */
+        .matchup-unit {
+            display: flex;
+            align-items: center;
+            margin: 10px 0;
+        }
+
+        .teams {
+            display: flex;
+            flex-direction: column;
+            gap: var(--gap-y);
+        }
+
+        .participant { 
+            width: var(--card-width); 
+            height: var(--card-height); 
+            background: white; 
+            border: 1px solid #ccc; 
+            border-radius: 4px; 
+            display: flex; 
+            align-items: center; 
+            justify-content: center; 
+            overflow: hidden; 
+            box-shadow: 0 1px 3px rgba(0,0,0,0.1); 
+        }
+        .participant img { max-width: 90%; max-height: 90%; }
+
+        /* --- 左翼（Left Wing）の線 --- */
+        .left-wing .connector { 
+            width: var(--connector-w); 
+            height: calc(var(--card-height) + var(--gap-y)); 
+            border: var(--line-width) solid var(--line-color); 
+            border-left: none; /* 右側を開ける */
+            border-radius: 0 8px 8px 0; 
+            position: relative; 
+        }
+        .left-wing .connector::after { 
+            content: ""; 
+            position: absolute; 
+            top: 50%; 
+            right: calc(var(--connector-w) * -1); 
+            width: var(--connector-w); 
+            height: var(--line-width); 
+            background: var(--line-color); 
+            transform: translateY(-50%); 
+        }
+
+        /* --- 右翼（Right Wing）の線 --- */
+        .right-wing .matchup-unit {
+            flex-direction: row-reverse; /* 要素を右から左へ並べる */
+        }
+        .right-wing .connector { 
+            width: var(--connector-w); 
+            height: calc(var(--card-height) + var(--gap-y)); 
+            border: var(--line-width) solid var(--line-color); 
+            border-right: none; /* 左側を開ける */
+            border-radius: 8px 0 0 8px; 
+            position: relative; 
+        }
+        .right-wing .connector::after { 
+            content: ""; 
+            position: absolute; 
+            top: 50%; 
+            left: calc(var(--connector-w) * -1); /* 左へ伸ばす */
+            width: var(--connector-w); 
+            height: var(--line-width); 
+            background: var(--line-color); 
+            transform: translateY(-50%); 
+        }
+
+        /* 中央（決勝）のスタイリング */
+        .center-wing {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            margin: 0 calc(var(--connector-w) * 2); /* 左右の線との距離 */
+        }
+        .final-match {
+            margin-top: 50px; /* 位置調整 */
+        }
+        .winner-card {
+            border: 2px dashed #aaa;
+            background: #eee;
+            color: #666;
+            font-weight: bold;
+            margin-top: var(--gap-y);
+        }
+
+    </style>
+</head>
+<body>
+
+<h1>THE SECOND 決勝トーナメント</h1>
+
+<div class="tournament-container">
+    
+    <div class="round left-wing" id="left-bracket">
+        </div>
+
+    <div class="center-wing">
+        <div class="participant winner-card">WINNER</div>
+        <div class="teams final-match">
+            <div class="participant" style="background:#eee; border:1px dashed #bbb;"></div>
+            <div class="participant" style="background:#eee; border:1px dashed #bbb;"></div>
+        </div>
+    </div>
+
+    <div class="round right-wing" id="right-bracket">
+        </div>
+
+</div>
+
+<script>
+    // データを左右に分割
+    const matchupsLeft = [
+        ["スーパーマラドーナ", "金属バット"],
+        ["LLR", "ラフ次元"],
+        ["タモンズ", "モンスターエンジン"],
+        ["レイザーラモン", "ななまがり"],
+        ["エル・カブキ", "はりけ～んず"],
+        ["ツーナッカン", "ザ・パンチ"],
+        ["スマイル", "セルライトスパ"],
+        ["黒帯", "カナメストーン"]
+    ];
+
+    const matchupsRight = [
+        ["パタパタママ", "シュッシュレコード"],
+        ["ちょんまげラーメン", "シャンプーハット"],
+        ["Dr.ハイリンリッヒ", "吉田たち"],
+        ["タング", "タナからイケダ"],
+        ["三拍子", "マシンガンズ"],
+        ["高校ズ", "リニア"],
+        ["ハンジロウ", "囲碁将棋"],
+        ["ブルーリバー", "トット"]
+    ];
+
+    // 共通の生成関数
+    function createBracket(containerId, matchups) {
+        const container = document.getElementById(containerId);
+        matchups.forEach(pair => {
+            const unit = document.createElement('div');
+            unit.className = 'matchup-unit';
+            unit.innerHTML = `
+                <div class="teams">
+                    <div class="participant"><img src="https://go-table2svg.vercel.app/api?name=${encodeURIComponent(pair[0])}.svg"></div>
+                    <div class="participant"><img src="https://go-table2svg.vercel.app/api?name=${encodeURIComponent(pair[1])}.svg"></div>
+                </div>
+                <div class="connector"></div>
+            `;
+            container.appendChild(unit);
+        });
+    }
+
+    // 左右それぞれに流し込み
+    createBracket('left-bracket', matchupsLeft);
+    createBracket('right-bracket', matchupsRight);
+</script>
+
+</body>
+</html>
