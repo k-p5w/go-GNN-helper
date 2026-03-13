@@ -72,10 +72,10 @@ const (
 	KDcolor            = "#444444"
 )
 
-// Handler はスタイリッシュ、UD、かつ月単位の芸歴に対応したSVGを生成します
 func Handler(w http.ResponseWriter, r *http.Request) {
-	fmt.Println("start Professional UD Handler")
+	fmt.Println("start Ripple Stump UD Handler")
 
+	// 1. パラメータの解析
 	q := r.URL.Query()
 	svgname := q.Get("name")
 	if len(svgname) == 0 || !strings.HasSuffix(svgname, ".svg") {
@@ -85,76 +85,87 @@ func Handler(w http.ResponseWriter, r *http.Request) {
 	actorName := strings.Replace(svgname, ".svg", "", -1)
 	urlName := strings.ReplaceAll(actorName, " ", "_")
 
+	// 2. データの取得
 	gi := getTableAccount(urlName)
 
 	// 3. レイアウト計算
 	nameLen := utf8.RuneCountInString(gi.Name)
-	currentFontSize := FontSize
-	if nameLen > 5 {
-		currentFontSize = (FontSize * 5) / nameLen
+	currentFontSize := 180
+	if nameLen > 4 {
+		currentFontSize = (850 / nameLen)
 	}
 
-	// --- 4. 年輪（numLines）の計算 ---
-	// 芸歴（PerformanceExperienceに月を含めた数値が入っている想定）
+	// --- 4. 年輪（Ripple）の計算 ---
 	exp := float64(gi.PerformanceExperience)
 	if exp < 1 {
 		exp = 1
 	}
-
-	// 1, 2, 4, 8, 16, 25, 32, 64... の差が出る対数スケール
-	numLines := int(math.Log2(exp)*2) + 1
-	if numLines > 20 {
-		numLines = 20
+	nStages := int(math.Log2(exp)) + 1
+	if nStages > 7 {
+		nStages = 7
 	}
 
-	rectWidth := (currentFontSize * nameLen) + 120
-	rectHeight := FrameHeight
-	canvasWidth := rectWidth + (numLines * 16) + 80
-	canvasHeight := rectHeight + (numLines * 16) + 80
-
-	originX := float64(canvasWidth) / 2
-	originY := float64(canvasHeight) / 2
-	rectX := originX - float64(rectWidth)/2
-	rectY := originY - float64(rectHeight)/2
+	// キャンバスサイズ
+	rectWidth := (currentFontSize * nameLen) + 150
+	rectHeight := 300
+	canvasWidth := rectWidth + 50
+	canvasHeight := rectHeight + 50
 
 	baseColor := gi.ProductionColor.BaseColor
 
-	// 6. 芸歴装飾レイヤー（年輪）の生成
-	var layers strings.Builder
-	for i := 0; i < numLines; i++ {
-		offset := float64(i * 8)
-		opacity := 0.35 - (float64(i) * 0.015)
+	// --- 5. 【修正】右端を中心として左へ広がる波紋年輪 ---
+	var rippleRings strings.Builder
+	// 中心をキャンバスの「右端の少し外」に置くことで、より綺麗な曲線が名前にかかります
+	centerX := float64(canvasWidth + 20)
+	centerY := float64(canvasHeight / 2)
+
+	for i := 0; i < nStages; i++ {
+		// 半径を等比数列で広げる。名前まで届くように初期値を調整
+		// 1段階目から左へ向かって大きく広がっていく
+		radius := float64(40 * int(math.Pow(2, float64(i))))
+
+		opacity := 0.30 - (float64(i) * 0.04)
 		if opacity < 0.05 {
 			opacity = 0.05
 		}
-		layers.WriteString(fmt.Sprintf(
-			`<rect x="%.1f" y="%.1f" rx="20" ry="20" width="%.1f" height="%.1f" 
-			fill="none" stroke="%s" stroke-width="1.2" stroke-opacity="%.2f" />
+
+		// 右端を中心とした円（の左半分側が見える状態）を描画
+		rippleRings.WriteString(fmt.Sprintf(
+			`<circle cx="%.1f" cy="%.1f" r="%.1f" 
+			fill="none" stroke="%s" stroke-width="3" stroke-opacity="%.2f" />
 			`,
-			rectX-offset, rectY-offset, float64(rectWidth)+(offset*2), float64(rectHeight)+(offset*2),
-			baseColor, opacity,
+			centerX, centerY, radius, baseColor, opacity,
 		))
 	}
 
-	// 7. SVG組み立て
+	// 6. SVG組み立て
 	svgPage := fmt.Sprintf(`<?xml version="1.0" encoding="UTF-8"?>
-<svg width="%d" height="%d" viewBox="0 0 %d %d" xmlns="http://www.w3.org/2000/svg">
+<svg width="%d" height="%d" viewBox="0 0 %d %d" xmlns="http://www.w3.org/2000/svg" style="background-color: transparent;">
 	<defs>
-		<filter id="softShadow" x="-20%%" y="-20%%" width="140%%" height="140%%">
-			<feDropShadow dx="0" dy="2" stdDeviation="3" flood-opacity="0.3"/>
+		<filter id="strongShadow" x="-30%%" y="-30%%" width="160%%" height="160%%">
+			<feDropShadow dx="0" dy="4" stdDeviation="6" flood-opacity="0.8"/>
 		</filter>
+		<clipPath id="frameClip">
+			<rect x="0" y="0" width="%d" height="%d" rx="20" ry="20" />
+		</clipPath>
 	</defs>
-	%s
-	<rect x="%.1f" y="%.1f" rx="20" ry="20" width="%d" height="%d" 
-		fill="none" stroke="%s" stroke-width="5" />
-	<g style="font-family:'Hiragino Kaku Gothic ProN','Meiryo',sans-serif; font-size:%dpx; font-weight:900; filter:url(#softShadow);">
-		<text x="50%%" y="50%%" text-anchor="middle" dominant-baseline="central" stroke="black" stroke-width="14" stroke-linejoin="round" paint-order="stroke" fill="black">%s</text>
-		<text x="50%%" y="50%%" text-anchor="middle" dominant-baseline="central" stroke="white" stroke-width="9" stroke-linejoin="round" paint-order="stroke" fill="white">%s</text>
-		<text x="50%%" y="50%%" text-anchor="middle" dominant-baseline="central" fill="%s">%s</text>
+
+	<g clip-path="url(#frameClip)">
+		%s
+	</g>
+
+	<g style="font-family:'Hiragino Kaku Gothic ProN','Meiryo',sans-serif; font-size:%dpx; font-weight:900; filter:url(#strongShadow);">
+		<text x="45%%" y="50%%" text-anchor="middle" dominant-baseline="central" 
+			stroke="black" stroke-width="18" stroke-linejoin="round" paint-order="stroke" fill="black">%s</text>
+		<text x="45%%" y="50%%" text-anchor="middle" dominant-baseline="central" 
+			stroke="white" stroke-width="11" stroke-linejoin="round" paint-order="stroke" fill="white">%s</text>
+		<text x="45%%" y="50%%" text-anchor="middle" dominant-baseline="central" 
+			fill="%s">%s</text>
 	</g>
 </svg>`,
 		canvasWidth, canvasHeight, canvasWidth, canvasHeight,
-		layers.String(), rectX, rectY, rectWidth, rectHeight, baseColor,
+		canvasWidth, canvasHeight, // clipPath用
+		rippleRings.String(),
 		currentFontSize, gi.Name, gi.Name, baseColor, gi.Name,
 	)
 
